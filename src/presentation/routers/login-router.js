@@ -10,7 +10,6 @@ module.exports = class LoginRouter {
   async route (httpRequest) {
     try {
       const { email, password } = httpRequest.body
-
       if (!email) {
         return HttpResponse.badRequest(new MissingParamError('email'))
       }
