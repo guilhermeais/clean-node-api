@@ -75,28 +75,7 @@ describe('Auth UseCase', () => {
     await sut.auth('any_email@gmail.com', 'any_password')
     expect(loadUserByEmailRepositorySpy.email).toBe('any_email@gmail.com')
   })
-  test('should throws if no dependency is provided', async () => {
-    const sut = new AuthUseCase()
-    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
 
-    expect(sutPromise).rejects.toThrow()
-  })
-  test('should throws if no LoadUserByEmailRepository is provided', async () => {
-    const sut = new AuthUseCase({ loadUserByEmailRepository: undefined })
-    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
-
-    expect(sutPromise).rejects.toThrow(
-      new MissingParamError('loadUserByEmailRepository')
-    )
-  })
-  test('should throws if  LoadUserByEmailRepository has no load method', async () => {
-    const sut = new AuthUseCase({ loadUserByEmailRepository: {} })
-    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
-
-    expect(sutPromise).rejects.toThrow(
-      new InvalidParamError('loadUserByEmailRepository')
-    )
-  })
   test('should return null if invalid email is provided', async () => {
     const { sut, loadUserByEmailRepositorySpy } = makeSut()
     loadUserByEmailRepositorySpy.user = null
@@ -144,5 +123,74 @@ describe('Auth UseCase', () => {
 
     expect(tokenGeneratorSpy.accessToken).toBe(accessToken)
     expect(tokenGeneratorSpy.accessToken).toBeTruthy()
+  })
+
+  test('should throws if no dependency is provided', async () => {
+    const sut = new AuthUseCase()
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow()
+  })
+  test('should throws if no LoadUserByEmailRepository is provided', async () => {
+    const sut = new AuthUseCase({ loadUserByEmailRepository: undefined })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(
+      new MissingParamError('loadUserByEmailRepository')
+    )
+  })
+  test('should throws if  LoadUserByEmailRepository has no load method', async () => {
+    const sut = new AuthUseCase({
+      loadUserByEmailRepository: {},
+      encrypter: undefined,
+      tokenGenerator: makeTokenGenerator()
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(
+      new InvalidParamError('loadUserByEmailRepository')
+    )
+  })
+
+  test('should throws if no Encrypter is provided', async () => {
+    const sut = new AuthUseCase({
+      encrypter: undefined,
+      loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+      tokenGenerator: makeTokenGenerator()
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(new MissingParamError('encrypter'))
+  })
+  test('should throws if Encrypter has no compare method', async () => {
+    const sut = new AuthUseCase({
+      encrypter: {},
+      loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+      tokenGenerator: makeTokenGenerator()
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(new InvalidParamError('encrypter'))
+  })
+
+  test('should throws if no TokenGenerator is provided', async () => {
+    const sut = new AuthUseCase({
+      tokenGenerator: undefined,
+      encrypter: makeEncrypter(),
+      loadUserByEmailRepository: makeLoadUserByEmailRepository()
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(new MissingParamError('tokenGenerator'))
+  })
+  test('should throws if TokenGenerator has no compare method', async () => {
+    const sut = new AuthUseCase({
+      tokenGenerator: {},
+      encrypter: makeEncrypter(),
+      loadUserByEmailRepository: makeLoadUserByEmailRepository()
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(new InvalidParamError('tokenGenerator'))
   })
 })
