@@ -83,6 +83,17 @@ const makeUpdateAccessTokenRepository = () => {
   return updateAccessTokenRepositorySpy
 }
 
+const makeUpdateAccessTokenRepositoryWithError = () => {
+  class UpdateAccessTokenRepositorySpy {
+    async update (userId, accessToken) {
+      throw new Error()
+    }
+  }
+  const updateAccessTokenRepositorySpy = new UpdateAccessTokenRepositorySpy()
+
+  return updateAccessTokenRepositorySpy
+}
+
 const makeSut = () => {
   const encrypterSpy = makeEncrypter()
   const loadUserByEmailRepositorySpy = makeLoadUserByEmailRepository()
@@ -238,9 +249,37 @@ describe('Auth UseCase', () => {
 
     expect(sutPromise).rejects.toThrow(new InvalidParamError('tokenGenerator'))
   })
+  test('should throws if no UpdateAccessTokenRepository is provided', async () => {
+    const sut = new AuthUseCase({
+      tokenGenerator: makeTokenGenerator(),
+      encrypter: makeEncrypter(),
+      loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+      UpdateAccessTokenRepository: undefined
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(
+      new MissingParamError('updateAccessTokenRepository')
+    )
+  })
+  test('should throws if UpdateAccessTokenRepository has no update method', async () => {
+    const sut = new AuthUseCase({
+      tokenGenerator: makeTokenGenerator(),
+      encrypter: makeEncrypter(),
+      loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+      updateAccessTokenRepository: {}
+    })
+    const sutPromise = sut.auth('any_email@gmail.com', 'any_password')
+
+    expect(sutPromise).rejects.toThrow(
+      new InvalidParamError('updateAccessTokenRepository')
+    )
+  })
+
   test('should throw if any dependency throws', async () => {
     const loadUserByEmailRepository = makeLoadUserByEmailRepository()
     const encrypter = makeEncrypter()
+    const tokenGenerator = makeTokenGenerator()
     const suts = [
       new AuthUseCase({
         loadUserByEmailRepository: makeLoadUserByEmailRepositoryWithError()
@@ -253,6 +292,12 @@ describe('Auth UseCase', () => {
         loadUserByEmailRepository,
         encrypter,
         tokenGenerator: makeTokenGeneratorWithError()
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository,
+        encrypter,
+        tokenGenerator,
+        updateAccessTokenRepository: makeUpdateAccessTokenRepositoryWithError()
       })
     ]
     for (const sut of suts) {
