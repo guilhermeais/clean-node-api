@@ -22,12 +22,24 @@ module.exports = class AuthUseCase {
     if (!this.tokenGenerator.generate) {
       throw new InvalidParamError('tokenGenerator')
     }
+    if (!this.updateAccessTokenRepository) {
+      throw new MissingParamError('updateAccessTokenRepository')
+    }
+    if (!this.updateAccessTokenRepository.update) {
+      throw new InvalidParamError('updateAccessTokenRepository')
+    }
   }
 
-  constructor ({ loadUserByEmailRepository, encrypter, tokenGenerator } = {}) {
+  constructor ({
+    loadUserByEmailRepository,
+    encrypter,
+    tokenGenerator,
+    updateAccessTokenRepository
+  } = {}) {
     this.loadUserByEmailRepository = loadUserByEmailRepository
     this.encrypter = encrypter
     this.tokenGenerator = tokenGenerator
+    this.updateAccessTokenRepository = updateAccessTokenRepository
   }
 
   async auth (email, password) {
@@ -46,7 +58,9 @@ module.exports = class AuthUseCase {
       if (!isValid) {
         return null
       }
-      return await this.tokenGenerator.generate(user.id)
+      const accessToken = await this.tokenGenerator.generate(user.id)
+      await this.updateAccessTokenRepository.update(user.id, accessToken)
+      return accessToken
     }
     return null
   }

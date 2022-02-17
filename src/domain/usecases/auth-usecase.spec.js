@@ -71,22 +71,36 @@ const makeTokenGeneratorWithError = () => {
 
   return tokenGeneratorSpy
 }
+const makeUpdateAccessTokenRepository = () => {
+  class UpdateAccessTokenRepositorySpy {
+    async update (userId, accessToken) {
+      this.userId = userId
+      this.accessToken = accessToken
+    }
+  }
+  const updateAccessTokenRepositorySpy = new UpdateAccessTokenRepositorySpy()
+
+  return updateAccessTokenRepositorySpy
+}
 
 const makeSut = () => {
   const encrypterSpy = makeEncrypter()
   const loadUserByEmailRepositorySpy = makeLoadUserByEmailRepository()
   const tokenGeneratorSpy = makeTokenGenerator()
+  const updateAccessTokenRepositorySpy = makeUpdateAccessTokenRepository()
   const sut = new AuthUseCase({
     loadUserByEmailRepository: loadUserByEmailRepositorySpy,
     encrypter: encrypterSpy,
-    tokenGenerator: tokenGeneratorSpy
+    tokenGenerator: tokenGeneratorSpy,
+    updateAccessTokenRepository: updateAccessTokenRepositorySpy
   })
 
   return {
     sut,
     loadUserByEmailRepositorySpy,
     encrypterSpy,
-    tokenGeneratorSpy
+    tokenGeneratorSpy,
+    updateAccessTokenRepositorySpy
   }
 }
 
@@ -224,7 +238,7 @@ describe('Auth UseCase', () => {
 
     expect(sutPromise).rejects.toThrow(new InvalidParamError('tokenGenerator'))
   })
-  test('should throw if any dependency throws', () => {
+  test('should throw if any dependency throws', async () => {
     const loadUserByEmailRepository = makeLoadUserByEmailRepository()
     const encrypter = makeEncrypter()
     const suts = [
@@ -245,5 +259,23 @@ describe('Auth UseCase', () => {
       const promise = sut.auth('any_email@mail.com', 'any_password')
       expect(promise).rejects.toThrow()
     }
+  })
+
+  test('should call UpdateAccessTokenRepository with correct values', async () => {
+    const {
+      sut,
+      loadUserByEmailRepositorySpy,
+      updateAccessTokenRepositorySpy,
+      tokenGeneratorSpy
+    } = makeSut()
+
+    await sut.auth('valid_email@gmail.com', 'valid_password')
+
+    expect(updateAccessTokenRepositorySpy.userId).toBe(
+      loadUserByEmailRepositorySpy.user.id
+    )
+    expect(updateAccessTokenRepositorySpy.accessToken).toBe(
+      tokenGeneratorSpy.accessToken
+    )
   })
 })
